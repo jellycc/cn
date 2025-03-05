@@ -1,4 +1,4 @@
 DOMAIN-SUFFIX,jinfengsc.wms.yunwms.com
-DOMAIN-SUFFIX,www.zimchina.com,DIRECT
-DOMAIN-SUFFIX,www.4yx.com,DIRECT
-
+DOMAIN-SUFFIX,www.zimchina.com
+DOMAIN-SUFFIX,www.4yx.com
+DOMAIN-SUFFIX,www.baidu.com
