@@ -2,8 +2,7 @@ name: Release TXT Files
 
 on:
   push:
-    branches:
-      - main # 或者你的默认分支名称
+    branches: [main]
 
 jobs:
   release:
@@ -12,21 +11,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Validate TXT files
+        run: |
+          if [ ! -f ./myproxy.txt ] || [ ! -f ./mydirect.txt ]; then
+            echo "Error: myproxy.txt or mydirect.txt not found!"
+            exit 1
+          fi
+
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: actions/create-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.run_id }} # 使用Run ID作为tag，每次提交都不同
-          release_name: Release ${{ github.run_id }}
+          tag_name: "release-$(date +%Y%m%d%H%M)"
+          release_name: "Release $(date +%Y%m%d%H%M)"
           body: |
-            Automatically generated release of myproxy.txt and mydirect.txt.
+            Auto-generated release for commit ${{ github.sha }}.
+            Commit Message: ${{ github.event.head_commit.message }}
           draft: false
           prerelease: false
 
       - name: Upload myproxy.txt
-        uses: actions/upload-release-asset@v1
+        uses: actions/upload-release-asset@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -36,7 +43,7 @@ jobs:
           asset_content_type: text/plain
 
       - name: Upload mydirect.txt
-        uses: actions/upload-release-asset@v1
+        uses: actions/upload-release-asset@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
