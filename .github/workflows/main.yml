@@ -1,4 +1,4 @@
-name: Update Release and Clean Old
+name: Dynamic Release Management
 
 on:
   push:
@@ -8,75 +8,53 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      # 代码检出
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # 获取完整历史记录
+          fetch-depth: 0
 
+      # 文件验证
       - name: Validate TXT files
         run: |
-          if [ ! -f ./myproxy.txt ] || [ ! -f ./mydirect.txt ]; then
-            echo "Error: TXT files missing!"
-            exit 1
-          fi
+          [ -f ./myproxy.txt ] || { echo "myproxy.txt missing"; exit 1; }
+          [ -f ./mydirect.txt ] || { echo "mydirect.txt missing"; exit 1; }
 
-      - name: Delete old git tag (local & remote)
+      # 标签管理
+      - name: Force update latest tag
         run: |
-          # 删除本地标签
-          git tag -d latest || true
-          # 删除远程标签
-          git push origin :refs/tags/latest || true
-
-      - name: Force push new tag
-        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
           git tag -f latest
           git push origin latest --force
 
+      # 使用现代 Release Action
       - name: Create/Update Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
+        id: release
         with:
-          tag_name: latest  # 固定标签名
-          release_name: "Latest Release (${GITHUB_SHA:0:7})"
+          tag_name: latest
+          name: "Release ${{ github.sha }}"
           body: |
             Updated at: ${{ github.event.head_commit.timestamp }}
-            Commit: ${{ github.event.head_commit.message }}
-          draft: false
-          prerelease: false
+            Commit Message: ${{ github.event.head_commit.message }}
+          files: |
+            myproxy.txt
+            mydirect.txt
 
-      - name: Upload myproxy.txt
-        uses: actions/upload-release-asset@v1
+      # 旧 Release 清理
+      - name: Cleanup old releases
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./myproxy.txt
-          asset_name: myproxy.txt
-
-      - name: Upload mydirect.txt
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./mydirect.txt
-          asset_name: mydirect.txt
-
-      - name: Delete old releases
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 安装 GitHub CLI
-          sudo apt-get install -y gh
+          # 安装依赖
+          sudo apt-get install -y jq
 
-          # 认证
-          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+          # 获取 releases 列表 (保留最新3个)
+          releases=$(gh api repos/${{ github.repository }}/releases | jq -r '.[3:] | .[].id')
 
-          # 获取所有 releases (JSON 格式)
-          releases=$(gh api repos/${{ github.repository }}/releases)
-
-          # 解析并删除旧 releases (保留最新的2个)
-          echo "$releases" | jq -r '.[2:] | .[].id' | while read id; do
+          # 删除旧 releases
+          echo "$releases" | while read id; do
             gh api repos/${{ github.repository }}/releases/$id -X DELETE
             echo "Deleted release ID: $id"
           done
