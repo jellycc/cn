@@ -1,0 +1,46 @@
+name: Release TXT Files
+
+on:
+  push:
+    branches:
+      - main # 或者你的默认分支名称
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_id }} # 使用Run ID作为tag，每次提交都不同
+          release_name: Release ${{ github.run_id }}
+          body: |
+            Automatically generated release of myproxy.txt and mydirect.txt.
+          draft: false
+          prerelease: false
+
+      - name: Upload myproxy.txt
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./myproxy.txt
+          asset_name: myproxy.txt
+          asset_content_type: text/plain
+
+      - name: Upload mydirect.txt
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./mydirect.txt
+          asset_name: mydirect.txt
+          asset_content_type: text/plain
