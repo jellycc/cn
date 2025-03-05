@@ -1,4 +1,4 @@
-playload:
+payload:
  - DOMAIN-SUFFIX,translate.googleapis.com
  - DOMAIN-SUFFIX,idev.dev
  - DOMAIN-SUFFIX,github.com
