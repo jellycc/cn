@@ -1,1 +1,5 @@
-
+DOMAIN-SUFFIX,translate.googleapis.com,自动选择
+DOMAIN-SUFFIX,idev.dev,自动选择
+DOMAIN-SUFFIX,github.com,自动选择
+DOMAIN-SUFFIX,raw.githubusercontent.com,自动选择
+DOMAIN-SUFFIX,www.pricetransfer.com,自动选择
