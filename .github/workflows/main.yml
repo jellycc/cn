@@ -1,4 +1,4 @@
-name: Dynamic Release Management
+name: Smart Release Manager
 
 on:
   push:
@@ -8,53 +8,57 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      # 代码检出
       - name: Checkout code
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      # 文件验证
-      - name: Validate TXT files
+      - name: File validation
         run: |
           [ -f ./myproxy.txt ] || { echo "myproxy.txt missing"; exit 1; }
           [ -f ./mydirect.txt ] || { echo "mydirect.txt missing"; exit 1; }
 
-      # 标签管理
-      - name: Force update latest tag
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git tag -f latest
-          git push origin latest --force
-
-      # 使用现代 Release Action
-      - name: Create/Update Release
-        uses: softprops/action-gh-release@v1
-        id: release
-        with:
-          tag_name: latest
-          name: "Release ${{ github.sha }}"
-          body: |
-            Updated at: ${{ github.event.head_commit.timestamp }}
-            Commit Message: ${{ github.event.head_commit.message }}
-          files: |
-            myproxy.txt
-            mydirect.txt
-
-      # 旧 Release 清理
-      - name: Cleanup old releases
+      - name: Delete existing release (if any)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 安装依赖
-          sudo apt-get install -y jq
+          # 删除与标签关联的旧发布
+          if gh release view latest &> /dev/null; then
+            gh release delete latest -y
+            echo "Deleted existing release"
+          fi
 
-          # 获取 releases 列表 (保留最新3个)
-          releases=$(gh api repos/${{ github.repository }}/releases | jq -r '.[3:] | .[].id')
+          # 强制更新标签
+          git tag -f latest
+          git push origin latest --force
 
-          # 删除旧 releases
+      - name: Create/Overwrite Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: latest
+          name: "Dynamic Release (${GITHUB_SHA:0:7})"
+          body: |
+            📅 Build Time: ${{ steps.date.outputs.timestamp }}
+            📜 Commit: ${{ github.event.head_commit.message }}
+          files: |
+            myproxy.txt
+            mydirect.txt
+          replace_existing: true  # 关键覆盖参数
+          generate_release_notes: true
+
+      - name: Prune old releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 获取保留窗口（保留最新3个）
+          keep_releases=3
+
+          # 获取待删除的Release ID列表
+          releases=$(gh api repos/${{ github.repository }}/releases \
+            --jq "sort_by(.created_at) | reverse | .[$keep_releases:] | .[].id")
+
+          # 批量删除
           echo "$releases" | while read id; do
             gh api repos/${{ github.repository }}/releases/$id -X DELETE
-            echo "Deleted release ID: $id"
+            echo "🚮 Deleted release ID: $id"
           done
