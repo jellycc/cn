@@ -1,5 +1,6 @@
-DOMAIN-SUFFIX,translate.googleapis.com
-DOMAIN-SUFFIX,idev.dev
-DOMAIN-SUFFIX,github.com
-DOMAIN-SUFFIX,raw.githubusercontent.com
-DOMAIN-SUFFIX,www.pricetransfer.com
+playload:
+ - DOMAIN-SUFFIX,translate.googleapis.com
+ - DOMAIN-SUFFIX,idev.dev
+ - DOMAIN-SUFFIX,github.com
+ - DOMAIN-SUFFIX,raw.githubusercontent.com
+ - DOMAIN-SUFFIX,www.pricetransfer.com
